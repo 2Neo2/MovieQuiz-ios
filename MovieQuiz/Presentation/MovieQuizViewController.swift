@@ -13,7 +13,7 @@ final class MovieQuizViewController: UIViewController {
     private var currentQuestionIndex: Int = 0
     
     // MARK: Set array of question with mock-data.
-    private var questions: [QuizQuestionModel] = [
+    private let questions: [QuizQuestionModel] = [
         QuizQuestionModel(image: "The Godfather", correctAnswer: true),
         QuizQuestionModel(image: "The Dark Knight", correctAnswer: true),
         QuizQuestionModel(image: "Kill Bill", correctAnswer: true),
@@ -23,12 +23,10 @@ final class MovieQuizViewController: UIViewController {
         QuizQuestionModel(image: "Old", correctAnswer: false),
         QuizQuestionModel(image: "The Ice Age Adventures of Buck Wild", correctAnswer: false),
         QuizQuestionModel(image: "Tesla", correctAnswer: false),
-        QuizQuestionModel(image: "Vivarium", correctAnswer: false),
-        QuizQuestionModel(image: "The Lord Of The Rings", correctAnswer: true),
-        QuizQuestionModel(image: "The Room", correctAnswer: false),
+        QuizQuestionModel(image: "Vivarium", correctAnswer: false)
     ]
     
-    private var questionLabel: UILabel = {
+    private let questionLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.numberOfLines = 2
@@ -38,7 +36,7 @@ final class MovieQuizViewController: UIViewController {
         return label
     }()
     
-    private var quizFilmImage: UIImageView = {
+    private let quizFilmImage: UIImageView = {
         let image = UIImageView()
         image.translatesAutoresizingMaskIntoConstraints = false
         image.contentMode = .scaleAspectFill
@@ -48,7 +46,7 @@ final class MovieQuizViewController: UIViewController {
         return image
     }()
     
-    private var questionTitleLabel: UILabel = {
+    private let questionTitleLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "Вопрос:"
@@ -57,7 +55,7 @@ final class MovieQuizViewController: UIViewController {
         return label
     }()
     
-    private var indexLabel: UILabel = {
+    private let indexLabel: UILabel = {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "0/10"
@@ -68,7 +66,7 @@ final class MovieQuizViewController: UIViewController {
     }()
     
     // MARK: Setup horizontal stack which containts two buttons (yes, no).
-    private var buttonsStackView: UIStackView = {
+    private let buttonsStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.alignment = .fill
@@ -79,7 +77,7 @@ final class MovieQuizViewController: UIViewController {
     }()
     
     // MARK: Setup horizontal stack which containts question title and index title.
-    private var questionTitlesStackView: UIStackView = {
+    private let questionTitlesStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .horizontal
@@ -90,7 +88,7 @@ final class MovieQuizViewController: UIViewController {
     }()
     
     // MARK: Setup vertical stack view which containts all views on the screen.
-    private var generalStackView: UIStackView = {
+    private let generalStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.axis = .vertical
@@ -99,7 +97,7 @@ final class MovieQuizViewController: UIViewController {
     }()
     
     // MARK: Setup view which containts question label for create special constraints for presenting on the screen.
-    private var viewContainer: UIView = {
+    private let viewContainer: UIView = {
         let view = UIView()
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -236,6 +234,7 @@ final class MovieQuizViewController: UIViewController {
             self.currentQuestionIndex = 0
             self.correctAnswers = 0
             
+            self.setEnabledButtons(to: true)
             let question = self.convertQuestionToStepViewModel(to: self.questions[self.currentQuestionIndex])
             self.showQuestion(quiz: question)
         }
