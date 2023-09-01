@@ -5,7 +5,7 @@
 //  Created by Иван Доронин on 05.08.2023.
 //
 
-import UIKit
+import Foundation
 
 struct QuizQuestionModel {
     let image: String
