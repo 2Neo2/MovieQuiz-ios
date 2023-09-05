@@ -113,9 +113,9 @@ final class MovieQuizViewController: UIViewController{
         questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
         alertPresenter = AlertPresenterImplementation(viewController: self)
         statisticService = StatisticServiceImplementatioin()
-        questionFactory?.requestNextQuestion()
-        // showLoadingIndicator()
-        // questionFactory?.loadData()
+        // questionFactory?.requestNextQuestion()
+        showLoadingIndicator()
+        questionFactory?.loadData()
     }
     
     private func setupView() {
@@ -211,7 +211,7 @@ final class MovieQuizViewController: UIViewController{
     
     private func convertQuestionToStepViewModel(to quizQuestionModel: QuizQuestionModel) -> QuizStepViewModel {
         QuizStepViewModel(
-            image: UIImage(named: quizQuestionModel.image) ?? UIImage(),
+            image: UIImage(data: quizQuestionModel.image) ?? UIImage(),
             question: quizQuestionModel.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )

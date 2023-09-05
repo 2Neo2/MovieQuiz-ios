@@ -27,71 +27,42 @@ final class QuestionFactory {
     init(moviesLoader: MoviesLoader, delegate: QuestionFactoryDelegate? = nil) {
         self.delegate = delegate
         self.moviesLoader = moviesLoader
-        setQuestions()
-    }
-    
-    private func setQuestions() {
-        questions = [
-            QuizQuestionModel(image: "The Godfather", correctAnswer: true),
-            QuizQuestionModel(image: "The Dark Knight", correctAnswer: true),
-            QuizQuestionModel(image: "Kill Bill", correctAnswer: true),
-            QuizQuestionModel(image: "The Avengers", correctAnswer: true),
-            QuizQuestionModel(image: "Deadpool", correctAnswer: true),
-            QuizQuestionModel(image: "The Green Knight", correctAnswer: true),
-            QuizQuestionModel(image: "Old", correctAnswer: false),
-            QuizQuestionModel(image: "The Ice Age Adventures of Buck Wild", correctAnswer: false),
-            QuizQuestionModel(image: "Tesla", correctAnswer: false),
-            QuizQuestionModel(image: "Vivarium", correctAnswer: false)
-        ]
     }
 }
 
 
 extension QuestionFactory: QuestionFactoryProtocol {
-    //    func requestNextQuestion() {
-    //        DispatchQueue.global().async { [weak self] in
-    //            guard let self = self else {
-    //                return
-    //            }
-    //
-    //            let index = (0..<self.movies.count).randomElement() ?? 0
-    //
-    //            guard let movie = movies[safe: index] else {
-    //                return
-    //            }
-    //
-    //            var imageData = Data()
-    //
-    //            do {
-    //                imageData = try Data(contentsOf: movie.resizedImageURL)
-    //            } catch {
-    //                print(error)
-    //            }
-    //
-    //            let rating = Float(movie.rating) ?? 0
-    //            let correctAnswer = rating > 6
-    //
-    //            let question = QuizQuestionModel(image: imageData, correctAnswer: correctAnswer)
-    //
-    //            DispatchQueue.main.async { [weak self] in
-    //                guard let self = self else { return }
-    //                self.delegate?.didReceiveNextQuestion(question: question)
-    //            }
-    //        }
-    //    }
+        func requestNextQuestion() {
+            DispatchQueue.global().async { [weak self] in
+                guard let self = self else {
+                    return
+                }
     
-    func requestNextQuestion() {
-        if questions.count == 0 {
-            setQuestions()
+                let index = (0..<self.movies.count).randomElement() ?? 0
+    
+                guard let movie = movies[safe: index] else {
+                    return
+                }
+    
+                var imageData = Data()
+    
+                do {
+                    imageData = try Data(contentsOf: movie.resizedImageURL)
+                } catch {
+                    print(error)
+                }
+    
+                let rating = Float(movie.rating) ?? 0
+                let correctAnswer = rating > 6
+    
+                let question = QuizQuestionModel(image: imageData, correctAnswer: correctAnswer)
+    
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.delegate?.didReceiveNextQuestion(question: question)
+                }
+            }
         }
-        
-        guard let index = (0..<questions.count).randomElement() else {
-            return
-        }
-        let question = questions[safe: index]
-        questions.remove(at: index)
-        delegate?.didReceiveNextQuestion(question: question)
-    }
     
     func loadData() {
         moviesLoader.loadMovies { [weak self] result in
