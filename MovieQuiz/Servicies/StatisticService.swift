@@ -41,8 +41,8 @@ final class StatisticServiceImplementatioin {
 extension StatisticServiceImplementatioin: StaticsticService {
     
     func store(correct count: Int, total amount: Int) {
-        self.correct += count
-        self.total += amount
+        self.correct = count
+        self.total = amount
         self.gamesCount += 1
         
         let date = dateProvider()
