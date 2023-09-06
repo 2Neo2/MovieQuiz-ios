@@ -19,6 +19,12 @@ final class MovieQuizViewController: UIViewController{
     private var alertPresenter: AlertPresenter?
     private var statisticService: StaticsticService?
     
+    private let activityIndicator: UIActivityIndicatorView = {
+        let activity = UIActivityIndicatorView()
+        activity.translatesAutoresizingMaskIntoConstraints = false
+        activity.hidesWhenStopped = true
+        return activity
+    }()
     
     private let questionLabel: UILabel = {
         let label = UILabel()
@@ -102,8 +108,9 @@ final class MovieQuizViewController: UIViewController{
         super.viewDidLoad()
         setupView()
         layoutConstraints()
+        print(NSHomeDirectory())
         
-        questionFactory = QuestionFactory(delegate: self)
+        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
         alertPresenter = AlertPresenterImplementation(viewController: self)
         statisticService = StatisticServiceImplementatioin()
         questionFactory?.requestNextQuestion()
@@ -111,7 +118,7 @@ final class MovieQuizViewController: UIViewController{
     
     private func setupView() {
         // MARK: Setup background.
-        view.backgroundColor = Constants.Colors.background
+        view.backgroundColor = Constants.Colors.black
         
         // MARK: Setup buttons.
         setupButtons(with: noButton, "Нет")
@@ -129,6 +136,7 @@ final class MovieQuizViewController: UIViewController{
         generalStackView.addArrangedSubview(questionTitlesStackView)
         generalStackView.addArrangedSubview(quizFilmImage)
         generalStackView.addArrangedSubview(viewContainer)
+        generalStackView.addArrangedSubview(activityIndicator)
         generalStackView.addArrangedSubview(buttonsStackView)
         
         view.addSubview(generalStackView)
@@ -163,6 +171,8 @@ final class MovieQuizViewController: UIViewController{
             questionLabel.trailingAnchor.constraint(equalTo: viewContainer.trailingAnchor, constant: -42),
             questionLabel.bottomAnchor.constraint(equalTo: viewContainer.bottomAnchor, constant: -13),
             quizFilmImage.heightAnchor.constraint(equalTo: generalStackView.heightAnchor, multiplier: 2.0 / 3.0),
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             
             noButton.widthAnchor.constraint(equalToConstant: 157),
             noButton.heightAnchor.constraint(equalToConstant: 60),
@@ -178,7 +188,7 @@ final class MovieQuizViewController: UIViewController{
             return
         }
         
-        showAnswerResult(true == currentQuestion.correctAnswer)
+        showAnswerResult(currentQuestion.correctAnswer)
     }
     
     @objc private func noButtonTapHandler() {
@@ -188,7 +198,7 @@ final class MovieQuizViewController: UIViewController{
             return
         }
         
-        showAnswerResult(false == currentQuestion.correctAnswer)
+        showAnswerResult(!currentQuestion.correctAnswer)
     }
     
     // MARK: Private func which hide second touch on buttons.
@@ -198,7 +208,11 @@ final class MovieQuizViewController: UIViewController{
     }
     
     private func convertQuestionToStepViewModel(to quizQuestionModel: QuizQuestionModel) -> QuizStepViewModel {
-        QuizStepViewModel(image: UIImage(named: quizQuestionModel.image) ?? UIImage(), question: quizQuestionModel.text, questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
+        QuizStepViewModel(
+            image: UIImage(named: quizQuestionModel.image) ?? UIImage(),
+            question: quizQuestionModel.text,
+            questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
+        )
     }
     
     private func showQuestion(quiz step: QuizStepViewModel) {
@@ -224,13 +238,41 @@ final class MovieQuizViewController: UIViewController{
         }
     }
     
+    private func showLoadingIndicator() {
+        activityIndicator.startAnimating()
+    }
+    
+    private func hideLoadingIndicator() {
+        activityIndicator.stopAnimating()
+    }
+    
+    private func showNetworkError(message: String) {
+        hideLoadingIndicator()
+        
+        let alert = AlertModel(
+            title: "Что-то пошло не так(",
+            message: message,
+            buttonText: "Попробовать еще раз"
+        ) { [weak self] in
+            guard let self = self else {
+                return
+            }
+            self.currentQuestionIndex = 0
+            self.correctAnswers = 0
+            self.setEnabledButtons(to: true)
+            self.questionFactory?.requestNextQuestion()
+        }
+        
+        alertPresenter?.showAlertResult(alertModel: alert)
+    }
+    
     private func showAlertResult() {
         statisticService?.store(correct: correctAnswers, total: questionsAmount)
         
         let alertModel = AlertModel(
-            title: "Игра окончена!",
+            title: "Этот раунд окончен!",
             message: makeResultMessage(),
-            buttonText: "OK",
+            buttonText: "Сыграть еще раз",
             completion: { [weak self] in
                 self?.currentQuestionIndex = 0
                 self?.correctAnswers = 0
@@ -248,8 +290,8 @@ final class MovieQuizViewController: UIViewController{
         }
         
         let totalPlaysCountLine = "Количество сыгранных квизов: \(String(describing: service.gamesCount))"
-        let currentGameResultLine = "Ваш результат: \(correctAnswers)\\\(questionsAmount)"
-        let bestGameInfoLine = "Рекорд: \(bestGame.correct)\\\(bestGame.total) (\(bestGame.date.dateTimeString))"
+        let currentGameResultLine = "Ваш результат: \(correctAnswers)/\(questionsAmount)"
+        let bestGameInfoLine = "Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))"
         let averageAccuracyLine = "Средняя точность: \(String(format: "%.2f", service.totalAccuracy))%"
         let resultMessage = [currentGameResultLine, totalPlaysCountLine, bestGameInfoLine, averageAccuracyLine].joined(separator: "\n")
         
@@ -270,6 +312,15 @@ final class MovieQuizViewController: UIViewController{
 }
 
 extension MovieQuizViewController: QuestionFactoryDelegate {
+    func didLoadDataFromServer() {
+        activityIndicator.isHidden = true
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
     func didReceiveNextQuestion(question: QuizQuestionModel?) {
         guard let question = question else {
             assertionFailure("Error")
@@ -278,7 +329,6 @@ extension MovieQuizViewController: QuestionFactoryDelegate {
         
         currentQuestion = question
         let viewModel = convertQuestionToStepViewModel(to: question)
-        
         
         DispatchQueue.main.async {
             self.showQuestion(quiz: viewModel)
