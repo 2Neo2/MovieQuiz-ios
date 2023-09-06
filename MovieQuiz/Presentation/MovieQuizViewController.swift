@@ -188,7 +188,7 @@ final class MovieQuizViewController: UIViewController{
             return
         }
         
-        showAnswerResult(true == currentQuestion.correctAnswer)
+        showAnswerResult(currentQuestion.correctAnswer)
     }
     
     @objc private func noButtonTapHandler() {
@@ -198,7 +198,7 @@ final class MovieQuizViewController: UIViewController{
             return
         }
         
-        showAnswerResult(false == currentQuestion.correctAnswer)
+        showAnswerResult(!currentQuestion.correctAnswer)
     }
     
     // MARK: Private func which hide second touch on buttons.
