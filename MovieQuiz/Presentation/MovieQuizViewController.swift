@@ -22,7 +22,7 @@ final class MovieQuizViewController: UIViewController{
     private let activityIndicator: UIActivityIndicatorView = {
         let activity = UIActivityIndicatorView()
         activity.translatesAutoresizingMaskIntoConstraints = false
-        activity.isHidden = true
+        activity.hidesWhenStopped = true
         return activity
     }()
     
@@ -113,9 +113,7 @@ final class MovieQuizViewController: UIViewController{
         questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
         alertPresenter = AlertPresenterImplementation(viewController: self)
         statisticService = StatisticServiceImplementatioin()
-        // questionFactory?.requestNextQuestion()
-        showLoadingIndicator()
-        questionFactory?.loadData()
+        questionFactory?.requestNextQuestion()
     }
     
     private func setupView() {
@@ -211,7 +209,7 @@ final class MovieQuizViewController: UIViewController{
     
     private func convertQuestionToStepViewModel(to quizQuestionModel: QuizQuestionModel) -> QuizStepViewModel {
         QuizStepViewModel(
-            image: UIImage(data: quizQuestionModel.image) ?? UIImage(),
+            image: UIImage(named: quizQuestionModel.image) ?? UIImage(),
             question: quizQuestionModel.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )
@@ -241,12 +239,10 @@ final class MovieQuizViewController: UIViewController{
     }
     
     private func showLoadingIndicator() {
-        activityIndicator.isHidden = false
         activityIndicator.startAnimating()
     }
     
     private func hideLoadingIndicator() {
-        activityIndicator.isHidden = true
         activityIndicator.stopAnimating()
     }
     
@@ -254,7 +250,7 @@ final class MovieQuizViewController: UIViewController{
         hideLoadingIndicator()
         
         let alert = AlertModel(
-            title: "Ошибка",
+            title: "Что-то пошло не так(",
             message: message,
             buttonText: "Попробовать еще раз"
         ) { [weak self] in
@@ -274,9 +270,9 @@ final class MovieQuizViewController: UIViewController{
         statisticService?.store(correct: correctAnswers, total: questionsAmount)
         
         let alertModel = AlertModel(
-            title: "Игра окончена!",
+            title: "Этот раунд окончен!",
             message: makeResultMessage(),
-            buttonText: "OK",
+            buttonText: "Сыграть еще раз",
             completion: { [weak self] in
                 self?.currentQuestionIndex = 0
                 self?.correctAnswers = 0
@@ -295,7 +291,7 @@ final class MovieQuizViewController: UIViewController{
         
         let totalPlaysCountLine = "Количество сыгранных квизов: \(String(describing: service.gamesCount))"
         let currentGameResultLine = "Ваш результат: \(correctAnswers)/\(questionsAmount)"
-        let bestGameInfoLine = "Рекорд: \(bestGame.correct)\\\(bestGame.total) (\(bestGame.date.dateTimeString))"
+        let bestGameInfoLine = "Рекорд: \(bestGame.correct)/\(bestGame.total) (\(bestGame.date.dateTimeString))"
         let averageAccuracyLine = "Средняя точность: \(String(format: "%.2f", service.totalAccuracy))%"
         let resultMessage = [currentGameResultLine, totalPlaysCountLine, bestGameInfoLine, averageAccuracyLine].joined(separator: "\n")
         

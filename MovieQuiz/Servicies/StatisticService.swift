@@ -39,14 +39,13 @@ final class StatisticServiceImplementatioin {
 }
 
 extension StatisticServiceImplementatioin: StaticsticService {
-    
     func store(correct count: Int, total amount: Int) {
-        self.correct = count
-        self.total = amount
+        self.correct += count
+        self.total += amount
         self.gamesCount += 1
         
         let date = dateProvider()
-        let currentBestGame = GameRecord(correct: correct, total: total, date: date)
+        let currentBestGame = GameRecord(correct: count, total: amount, date: date)
         
         if let prevBestGame = bestGame {
             if currentBestGame > prevBestGame {
@@ -80,6 +79,8 @@ extension StatisticServiceImplementatioin: StaticsticService {
             userDefaults.set(newValue, forKey: Keys.gamesCount.rawValue)
         }
     }
+    
+    
     
     var correct: Int {
         get {

@@ -8,7 +8,7 @@
 import Foundation
 
 struct QuizQuestionModel {
-    let image: Data
+    let image: String
     
     let text: String = "Рейтинг этого фильма больше чем 6?"
     
