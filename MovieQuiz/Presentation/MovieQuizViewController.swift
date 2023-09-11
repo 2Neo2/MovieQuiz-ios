@@ -18,6 +18,7 @@ final class MovieQuizViewController: UIViewController{
     private var currentQuestion: QuizQuestionModel?
     private var alertPresenter: AlertPresenter?
     private var statisticService: StaticsticService?
+    private var notificationGenerator = UINotificationFeedbackGenerator()
     
     private let activityIndicator: UIActivityIndicatorView = {
         let activity = UIActivityIndicatorView()
@@ -113,7 +114,8 @@ final class MovieQuizViewController: UIViewController{
         questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
         alertPresenter = AlertPresenterImplementation(viewController: self)
         statisticService = StatisticServiceImplementatioin()
-        questionFactory?.requestNextQuestion()
+        showLoadingIndicator()
+        questionFactory?.loadData()
     }
     
     private func setupView() {
@@ -187,6 +189,7 @@ final class MovieQuizViewController: UIViewController{
             assertionFailure("Error")
             return
         }
+        notificationGenerator.notificationOccurred(.success)
         
         showAnswerResult(currentQuestion.correctAnswer)
     }
@@ -197,6 +200,7 @@ final class MovieQuizViewController: UIViewController{
             assertionFailure("Error")
             return
         }
+        notificationGenerator.notificationOccurred(.success)
         
         showAnswerResult(!currentQuestion.correctAnswer)
     }
@@ -209,7 +213,7 @@ final class MovieQuizViewController: UIViewController{
     
     private func convertQuestionToStepViewModel(to quizQuestionModel: QuizQuestionModel) -> QuizStepViewModel {
         QuizStepViewModel(
-            image: UIImage(named: quizQuestionModel.image) ?? UIImage(),
+            image: UIImage(data: quizQuestionModel.image) ?? UIImage(),
             question: quizQuestionModel.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)"
         )
@@ -260,7 +264,8 @@ final class MovieQuizViewController: UIViewController{
             self.currentQuestionIndex = 0
             self.correctAnswers = 0
             self.setEnabledButtons(to: true)
-            self.questionFactory?.requestNextQuestion()
+            self.showLoadingIndicator()
+            self.questionFactory?.loadData()
         }
         
         alertPresenter?.showAlertResult(alertModel: alert)
@@ -277,7 +282,7 @@ final class MovieQuizViewController: UIViewController{
                 self?.currentQuestionIndex = 0
                 self?.correctAnswers = 0
                 self?.setEnabledButtons(to: true)
-                self?.questionFactory?.requestNextQuestion()
+                self?.questionFactory?.loadData()
             }
         )
         alertPresenter?.showAlertResult(alertModel: alertModel)
