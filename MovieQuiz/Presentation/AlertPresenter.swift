@@ -5,8 +5,8 @@
 //  Created by Иван Доронин on 29.08.2023.
 //
 
-import Foundation
 import UIKit
+
 protocol AlertPresenter {
     func showAlertResult(alertModel: AlertModel)
 }
@@ -18,7 +18,6 @@ class AlertPresenterImplementation {
         self.viewController = viewController
     }
 }
-
 
 extension AlertPresenterImplementation: AlertPresenter {
     func showAlertResult(alertModel: AlertModel) {
