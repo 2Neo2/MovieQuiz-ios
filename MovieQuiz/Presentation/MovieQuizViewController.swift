@@ -1,24 +1,30 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController{
+protocol MovieQuizViewControllerProtocol: AnyObject {
+    func show(quiz step: QuizStepViewModel)
+    func show(quiz result: QuizResultViewModel)
+    func showLoadingIndicator()
+    func hideLoadingIndicator()
+    
+    func highlightImageBorder(_ isCorrect: Bool)
+    func showNetworkError(message: String)
+}
+
+final class MovieQuizViewController: UIViewController, MovieQuizViewControllerProtocol {
     
     private var noButton = UIButton()
-    
     private var yesButton = UIButton()
     
-    // MARK: Set count of correct answer to 0.
-    private var correctAnswers: Int = 0
-    
-    // MARK: Set current question index to 0.
-    private var currentQuestionIndex: Int = 0
-    
-    private let questionsAmount: Int = 10
-    
-    private var questionFactory: QuestionFactoryProtocol?
-    private var currentQuestion: QuizQuestionModel?
     private var alertPresenter: AlertPresenter?
-    private var statisticService: StaticsticService?
+    private var presenter: MoviewQuizPresenter!
+    private var notificationGenerator = UINotificationFeedbackGenerator()
     
+    private let activityIndicator: UIActivityIndicatorView = {
+        let activity = UIActivityIndicatorView()
+        activity.translatesAutoresizingMaskIntoConstraints = false
+        activity.hidesWhenStopped = true
+        return activity
+    }()
     
     private let questionLabel: UILabel = {
         let label = UILabel()
@@ -32,6 +38,7 @@ final class MovieQuizViewController: UIViewController{
     
     private let quizFilmImage: UIImageView = {
         let image = UIImageView()
+        image.accessibilityIdentifier = "Poster"
         image.translatesAutoresizingMaskIntoConstraints = false
         image.contentMode = .scaleAspectFill
         image.backgroundColor = Constants.Colors.white
@@ -51,6 +58,7 @@ final class MovieQuizViewController: UIViewController{
     
     private let indexLabel: UILabel = {
         let label = UILabel()
+        label.accessibilityIdentifier = "Index"
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "0/10"
         label.setContentHuggingPriority(.init(rawValue: 252), for: .horizontal)
@@ -102,16 +110,16 @@ final class MovieQuizViewController: UIViewController{
         super.viewDidLoad()
         setupView()
         layoutConstraints()
+        print(NSHomeDirectory())
+        presenter = MoviewQuizPresenter(viewController: self)
         
-        questionFactory = QuestionFactory(delegate: self)
         alertPresenter = AlertPresenterImplementation(viewController: self)
-        statisticService = StatisticServiceImplementatioin()
-        questionFactory?.requestNextQuestion()
+        showLoadingIndicator()
     }
     
     private func setupView() {
         // MARK: Setup background.
-        view.backgroundColor = Constants.Colors.background
+        view.backgroundColor = Constants.Colors.black
         
         // MARK: Setup buttons.
         setupButtons(with: noButton, "Нет")
@@ -129,6 +137,7 @@ final class MovieQuizViewController: UIViewController{
         generalStackView.addArrangedSubview(questionTitlesStackView)
         generalStackView.addArrangedSubview(quizFilmImage)
         generalStackView.addArrangedSubview(viewContainer)
+        generalStackView.addArrangedSubview(activityIndicator)
         generalStackView.addArrangedSubview(buttonsStackView)
         
         view.addSubview(generalStackView)
@@ -144,8 +153,10 @@ final class MovieQuizViewController: UIViewController{
         button.layer.cornerRadius = 15
         
         if (title == "Да") {
+            button.accessibilityIdentifier = "Yes"
             button.addTarget(self, action: #selector(yesButtonTapHandler), for: .touchUpInside)
         } else {
+            button.accessibilityIdentifier = "No"
             button.addTarget(self, action: #selector(noButtonTapHandler), for: .touchUpInside)
         }
     }
@@ -163,6 +174,8 @@ final class MovieQuizViewController: UIViewController{
             questionLabel.trailingAnchor.constraint(equalTo: viewContainer.trailingAnchor, constant: -42),
             questionLabel.bottomAnchor.constraint(equalTo: viewContainer.bottomAnchor, constant: -13),
             quizFilmImage.heightAnchor.constraint(equalTo: generalStackView.heightAnchor, multiplier: 2.0 / 3.0),
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             
             noButton.widthAnchor.constraint(equalToConstant: 157),
             noButton.heightAnchor.constraint(equalToConstant: 60),
@@ -172,23 +185,15 @@ final class MovieQuizViewController: UIViewController{
     }
     
     @objc private func yesButtonTapHandler() {
+        notificationGenerator.notificationOccurred(.success)
         setEnabledButtons(to: false)
-        guard let currentQuestion = self.currentQuestion else {
-            assertionFailure("Error")
-            return
-        }
-        
-        showAnswerResult(true == currentQuestion.correctAnswer)
+        presenter.yesButtonClicked()
     }
     
     @objc private func noButtonTapHandler() {
+        notificationGenerator.notificationOccurred(.error)
         setEnabledButtons(to: false)
-        guard let currentQuestion = self.currentQuestion else {
-            assertionFailure("Error")
-            return
-        }
-        
-        showAnswerResult(false == currentQuestion.correctAnswer)
+        presenter.noButtonClicked()
     }
     
     // MARK: Private func which hide second touch on buttons.
@@ -197,15 +202,11 @@ final class MovieQuizViewController: UIViewController{
         yesButton.isEnabled = value
     }
     
-    private func convertQuestionToStepViewModel(to quizQuestionModel: QuizQuestionModel) -> QuizStepViewModel {
-        QuizStepViewModel(image: UIImage(named: quizQuestionModel.image) ?? UIImage(), question: quizQuestionModel.text, questionNumber: "\(currentQuestionIndex + 1)/\(questionsAmount)")
-    }
-    
-    private func showQuestion(quiz step: QuizStepViewModel) {
+    func show(quiz step: QuizStepViewModel) {
+        setEnabledButtons(to: true)
         quizFilmImage.image = step.image
         quizFilmImage.layer.borderWidth = 0
         quizFilmImage.layer.borderColor = Constants.Colors.black?.cgColor
-        self.currentQuestionIndex += 1
         indexLabel.text = step.questionNumber
         questionLabel.text = step.question
     }
@@ -215,73 +216,56 @@ final class MovieQuizViewController: UIViewController{
         return .lightContent
     }
     
-    private func showNextQuestionOrResult() {
-        if (currentQuestionIndex == questionsAmount) {
-            showAlertResult()
-        } else {
-            setEnabledButtons(to: true)
-            questionFactory?.requestNextQuestion()
-        }
+    func showLoadingIndicator() {
+        activityIndicator.startAnimating()
     }
     
-    private func showAlertResult() {
-        statisticService?.store(correct: correctAnswers, total: questionsAmount)
+    func hideLoadingIndicator() {
+        activityIndicator.stopAnimating()
+    }
+    
+    func showNetworkError(message: String) {
+        hideLoadingIndicator()
+        
+        let alert = AlertModel(
+            title: "Что-то пошло не так(",
+            message: message,
+            buttonText: "Попробовать еще раз"
+        ) { [weak self] in
+            guard let self = self else {
+                return
+            }
+            self.presenter.restartGame()
+            self.setEnabledButtons(to: true)
+            self.showLoadingIndicator()
+        }
+        
+        alertPresenter?.showAlertResult(alertModel: alert)
+    }
+    
+    func show(quiz result: QuizResultViewModel) {
+        let message = presenter.makeResultMessage()
         
         let alertModel = AlertModel(
-            title: "Игра окончена!",
-            message: makeResultMessage(),
-            buttonText: "OK",
+            title: result.title,
+            message: message,
+            buttonText: result.buttonText,
             completion: { [weak self] in
-                self?.currentQuestionIndex = 0
-                self?.correctAnswers = 0
-                self?.setEnabledButtons(to: true)
-                self?.questionFactory?.requestNextQuestion()
+                guard let self = self else {return}
+                self.presenter.restartGame()
+                self.setEnabledButtons(to: true)
             }
         )
+        
         alertPresenter?.showAlertResult(alertModel: alertModel)
     }
     
-    private func makeResultMessage() -> String {
-        guard let service = statisticService, let bestGame = statisticService?.bestGame else {
-            assertionFailure("Error")
-            return ""
-        }
-        
-        let totalPlaysCountLine = "Количество сыгранных квизов: \(String(describing: service.gamesCount))"
-        let currentGameResultLine = "Ваш результат: \(correctAnswers)\\\(questionsAmount)"
-        let bestGameInfoLine = "Рекорд: \(bestGame.correct)\\\(bestGame.total) (\(bestGame.date.dateTimeString))"
-        let averageAccuracyLine = "Средняя точность: \(String(format: "%.2f", service.totalAccuracy))%"
-        let resultMessage = [currentGameResultLine, totalPlaysCountLine, bestGameInfoLine, averageAccuracyLine].joined(separator: "\n")
-        
-        return resultMessage
-    }
-    
-    private func showAnswerResult(_ isCorrect: Bool) {
-        correctAnswers += isCorrect ? 1 : 0
+    func highlightImageBorder(_ isCorrect: Bool) {
         quizFilmImage.layer.masksToBounds = true
         quizFilmImage.layer.borderWidth = 8
         quizFilmImage.layer.borderColor = isCorrect ? Constants.Colors.green?.cgColor : Constants.Colors.red?.cgColor
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            guard let self = self else { return }
-            self.showNextQuestionOrResult()
-        }
     }
 }
 
-extension MovieQuizViewController: QuestionFactoryDelegate {
-    func didReceiveNextQuestion(question: QuizQuestionModel?) {
-        guard let question = question else {
-            assertionFailure("Error")
-            return
-        }
-        
-        currentQuestion = question
-        let viewModel = convertQuestionToStepViewModel(to: question)
-        
-        
-        DispatchQueue.main.async {
-            self.showQuestion(quiz: viewModel)
-        }
-    }
-}
+
+

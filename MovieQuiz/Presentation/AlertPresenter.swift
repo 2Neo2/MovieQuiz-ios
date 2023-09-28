@@ -5,8 +5,8 @@
 //  Created by Иван Доронин on 29.08.2023.
 //
 
-import Foundation
 import UIKit
+
 protocol AlertPresenter {
     func showAlertResult(alertModel: AlertModel)
 }
@@ -19,13 +19,13 @@ class AlertPresenterImplementation {
     }
 }
 
-
 extension AlertPresenterImplementation: AlertPresenter {
     func showAlertResult(alertModel: AlertModel) {
         let alert = UIAlertController(
             title: alertModel.title,
             message: alertModel.message,
             preferredStyle: .alert)
+        alert.view.accessibilityIdentifier = "Game results"
         
         let alertAction = UIAlertAction(title: alertModel.buttonText, style: .default) {_ in
             alertModel.completion()
