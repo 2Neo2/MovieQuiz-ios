@@ -25,6 +25,7 @@ extension AlertPresenterImplementation: AlertPresenter {
             title: alertModel.title,
             message: alertModel.message,
             preferredStyle: .alert)
+        alert.view.accessibilityIdentifier = "Game results"
         
         let alertAction = UIAlertAction(title: alertModel.buttonText, style: .default) {_ in
             alertModel.completion()
